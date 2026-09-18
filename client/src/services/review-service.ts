@@ -1,19 +1,45 @@
 import type { Review } from "../types/review";
 import { apiClient } from "./api-client";
 
+type Envelope<T> = { data: T };
+
+type ReviewListResult = {
+  reviews: Review[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+function normalizeReviewList(result: ReviewListResult) {
+  return {
+    reviews: result.reviews,
+    total: result.pagination.total,
+    page: result.pagination.page,
+    totalPages: result.pagination.totalPages,
+  };
+}
+
 export const reviewService = {
   async createReview(input: {
     rentalId: string;
     rating: number;
     comment?: string;
   }): Promise<{ review: Review }> {
-    const response = await apiClient.post("/reviews", input);
-    return response.data;
+    const response = await apiClient.post<Envelope<{ review: Review }>>(
+      "/reviews",
+      input,
+    );
+    return response.data.data;
   },
 
   async getReview(reviewId: string): Promise<{ review: Review }> {
-    const response = await apiClient.get(`/reviews/${reviewId}`);
-    return response.data;
+    const response = await apiClient.get<Envelope<{ review: Review }>>(
+      `/reviews/${reviewId}`,
+    );
+    return response.data.data;
   },
 
   async listProductReviews(
@@ -26,10 +52,10 @@ export const reviewService = {
     page: number;
     totalPages: number;
   }> {
-    const response = await apiClient.get(
+    const response = await apiClient.get<Envelope<ReviewListResult>>(
       `/reviews/product/${productId}?page=${page}&limit=${limit}`,
     );
-    return response.data;
+    return normalizeReviewList(response.data.data);
   },
 
   async getProductRating(productId: string): Promise<{
@@ -38,10 +64,15 @@ export const reviewService = {
       count: number;
     };
   }> {
-    const response = await apiClient.get(
+    const response = await apiClient.get<Envelope<{ rating: { averageRating: number; reviewCount: number } }>>(
       `/reviews/product/${productId}/rating`,
     );
-    return response.data;
+    return {
+      rating: {
+        average: response.data.data.rating.averageRating,
+        count: response.data.data.rating.reviewCount,
+      },
+    };
   },
 
   async listMyReviews(
@@ -53,10 +84,10 @@ export const reviewService = {
     page: number;
     totalPages: number;
   }> {
-    const response = await apiClient.get(
+    const response = await apiClient.get<Envelope<ReviewListResult>>(
       `/reviews/me?page=${page}&limit=${limit}`,
     );
-    return response.data;
+    return normalizeReviewList(response.data.data);
   },
 
   async listVendorReviews(
@@ -68,9 +99,9 @@ export const reviewService = {
     page: number;
     totalPages: number;
   }> {
-    const response = await apiClient.get(
+    const response = await apiClient.get<Envelope<ReviewListResult>>(
       `/reviews/vendor?page=${page}&limit=${limit}`,
     );
-    return response.data;
+    return normalizeReviewList(response.data.data);
   },
 };

@@ -1,4 +1,4 @@
-export type ReviewStatus = "PENDING" | "PUBLISHED";
+export type ReviewStatus = "PENDING" | "PUBLISHED" | "HIDDEN" | "REPORTED";
 
 export interface Review {
   id: string;
@@ -8,6 +8,9 @@ export interface Review {
   customerId: string;
   rating: number;
   comment?: string;
+  customer?: { id: string; displayName: string };
+  product?: { id: string; name: string };
+  vendor?: { id: string; displayName: string };
   status: ReviewStatus;
   createdAt: string;
   updatedAt: string;

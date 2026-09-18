@@ -17,13 +17,13 @@ import { asyncHandler } from "../utils/async-handler.js";
 export const reviewRouter = Router();
 
 // Public endpoints (no auth required)
-reviewRouter.get("/:reviewId", asyncHandler(getReview));
 reviewRouter.get("/product/:productId", asyncHandler(listProductReviews));
 reviewRouter.get("/product/:productId/rating", asyncHandler(getProductRating));
 
 reviewRouter.use(requireAuthentication);
 
 // Customer reviews
+reviewRouter.get("/me", requireRoles("CUSTOMER"), asyncHandler(listMyReviews));
 reviewRouter.post(
   "/",
   requireRoles("CUSTOMER"),
@@ -31,11 +31,11 @@ reviewRouter.post(
   asyncHandler(createReview),
 );
 
-reviewRouter.get("/me", requireRoles("CUSTOMER"), asyncHandler(listMyReviews));
-
 // Vendor reviews (their product reviews)
 reviewRouter.get(
   "/vendor",
   requireRoles("VENDOR"),
   asyncHandler(listVendorReviews),
 );
+
+reviewRouter.get("/:reviewId", asyncHandler(getReview));

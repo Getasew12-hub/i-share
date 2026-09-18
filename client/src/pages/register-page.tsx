@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { UserPlus } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { apiErrorMessage } from "../lib/api-errors";
 import { useAuth } from "../hooks/use-auth";
 import type { UserRole } from "../types/auth";
 
@@ -36,8 +37,8 @@ export function RegisterPage() {
       }
 
       navigate("/");
-    } catch {
-      setError("Unable to create that account.");
+    } catch (requestError) {
+      setError(apiErrorMessage(requestError, "Unable to create that account."));
     } finally {
       setIsSubmitting(false);
     }

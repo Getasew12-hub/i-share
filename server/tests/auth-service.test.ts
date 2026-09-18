@@ -42,6 +42,7 @@ class FakeAuthRepository implements AuthRepository {
   users = new Map<string, UserWithCredentials>();
   refreshSessions = new Map<string, RefreshSession>();
   emailVerificationTokens = new Map<string, EmailVerificationToken>();
+  refreshSessionCreationError: unknown;
 
   async createCustomer(input: {
     email: string;
@@ -103,6 +104,10 @@ class FakeAuthRepository implements AuthRepository {
     ipAddress?: string;
     userAgent?: string;
   }) {
+    if (this.refreshSessionCreationError) {
+      throw this.refreshSessionCreationError;
+    }
+
     const session: RefreshSession = {
       id: `session-${this.refreshSessions.size + 1}`,
       userId: input.userId,
@@ -302,6 +307,34 @@ describe("AuthService", () => {
         hashToken(refreshed.refreshToken, env.JWT_REFRESH_SECRET),
       )?.revokedReason,
     ).toBe("replay_detected");
+  });
+
+  it("converts a rotated_from_id uniqueness race into a replay failure", async () => {
+    const repository = new FakeAuthRepository();
+    const user = createUser({
+      passwordHash: await hashPassword("correct-password"),
+    });
+    repository.users.set(user.id, user);
+    const service = new AuthService(repository);
+    const loginResult = await service.login(
+      {
+        email: user.email,
+        password: "correct-password",
+      },
+      {},
+    );
+    repository.refreshSessionCreationError = {
+      code: "P2002",
+      meta: { target: ["rotated_from_id"] },
+    };
+
+    await expect(
+      service.refresh(loginResult.refreshToken, {}),
+    ).rejects.toMatchObject({
+      statusCode: 401,
+      code: "REFRESH_TOKEN_REPLAYED",
+      message: "Refresh token revoked.",
+    });
   });
 
   it("rejects invalid, expired, and reused email verification tokens", async () => {

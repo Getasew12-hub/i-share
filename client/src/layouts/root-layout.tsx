@@ -1,224 +1,258 @@
 import {
   Bell,
+  ChevronDown,
   CreditCard,
   FileText,
   LayoutDashboard,
   LogOut,
   Menu,
+  Package,
+  Search,
+  ShieldCheck,
+  ShoppingBag,
   Star,
+  Store,
   X,
 } from "lucide-react";
 import { useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "../hooks/use-auth";
 
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+};
+
+function navItems(role: string | undefined): NavItem[] {
+  const shared: NavItem[] = [
+    { to: "/products", label: "Marketplace", icon: ShoppingBag },
+  ];
+
+  if (role === "CUSTOMER") {
+    return [
+      { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
+      ...shared,
+      { to: "/bookings/me", label: "Bookings", icon: Package },
+      { to: "/payments", label: "Payments", icon: CreditCard },
+      { to: "/invoices", label: "Invoices", icon: FileText },
+      { to: "/reviews", label: "Reviews", icon: Star },
+      { to: "/notifications", label: "Notifications", icon: Bell },
+    ];
+  }
+
+  if (role === "VENDOR") {
+    return [
+      { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
+      { to: "/vendor/products", label: "Products", icon: Store },
+      { to: "/vendor/bookings", label: "Bookings", icon: Package },
+      { to: "/vendor/subscription", label: "Subscription", icon: CreditCard },
+      { to: "/payments", label: "Payments", icon: CreditCard },
+      { to: "/invoices", label: "Invoices", icon: FileText },
+      { to: "/reviews", label: "Reviews", icon: Star },
+      { to: "/notifications", label: "Notifications", icon: Bell },
+    ];
+  }
+
+  if (role === "ADMIN") {
+    return [
+      { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
+      { to: "/admin/vendors", label: "Vendor verification", icon: ShieldCheck },
+      ...shared,
+      { to: "/notifications", label: "Notifications", icon: Bell },
+    ];
+  }
+
+  return shared;
+}
+
+function isActivePath(pathname: string, to: string) {
+  return to === "/products"
+    ? pathname === "/products" || pathname.startsWith("/products/")
+    : pathname === to || pathname.startsWith(`${to}/`);
+}
+
 export function RootLayout() {
   const { user, logout, isBootstrapping } = useAuth();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const items = navItems(user?.role);
+  const userDisplayName = user?.displayName?.trim() || user?.email || "Account";
 
   if (isBootstrapping) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-9 w-9 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <Link to="/" className="flex items-center gap-2 font-bold text-xl">
-              <span className="text-primary">i-Share</span>
-            </Link>
+      <header className="sticky top-0 z-40 border-b border-border/80 bg-surface/95 backdrop-blur">
+        <div className="mx-auto flex h-[4.5rem] max-w-[1600px] items-center gap-4 px-4 sm:px-6 lg:px-8">
+          <Link to="/" className="flex shrink-0 items-center gap-3" aria-label="i-Share home">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-sm font-black text-primary-foreground">
+              iS
+            </span>
+            <span className="hidden text-lg font-black tracking-[-0.03em] text-foreground sm:inline">
+              i-Share
+            </span>
+          </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex md:gap-8">
-              {user && (
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex" aria-label="Primary navigation">
+            {items.map(({ to, label, icon: Icon }) => {
+              const active = isActivePath(location.pathname, to);
+              return (
                 <Link
-                  to="/dashboard"
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    active
+                      ? "bg-muted text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                  key={to}
+                  to={to}
                 >
-                  <LayoutDashboard className="h-4 w-4" />
-                  Dashboard
+                  <Icon aria-hidden="true" size={16} />
+                  {label}
                 </Link>
-              )}
-              <Link
-                to="/products"
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                Shop
-              </Link>
-              {user && (
+              );
+            })}
+          </nav>
+
+          <div className="ml-auto flex items-center gap-2">
+            <Link
+              className="hidden size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground sm:inline-flex"
+              to="/products"
+              aria-label="Search marketplace"
+              title="Search marketplace"
+            >
+              <Search aria-hidden="true" size={19} />
+            </Link>
+            {!user ? (
+              <div className="hidden items-center gap-2 sm:flex">
+                <Link
+                  className="inline-flex min-h-10 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
+                  to="/register"
+                >
+                  Create account
+                </Link>
+                <Link
+                  className="inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90"
+                  to="/login"
+                >
+                  Sign in
+                </Link>
+              </div>
+            ) : (
+              <div className="relative hidden sm:block">
+                <button
+                  aria-expanded={isUserMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Open user menu"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold hover:bg-muted"
+                  onClick={() => setIsUserMenuOpen((open) => !open)}
+                  type="button"
+                >
+                  <span className="flex size-7 items-center justify-center rounded-full bg-secondary text-xs font-black text-secondary-foreground">
+                    {userDisplayName.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="max-w-28 truncate">{userDisplayName}</span>
+                  <ChevronDown aria-hidden="true" size={15} />
+                </button>
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 top-12 w-48 rounded-xl border border-border bg-surface p-2 shadow-xl" role="menu">
+                    <Link
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      role="menuitem"
+                      to="/dashboard"
+                    >
+                      <LayoutDashboard aria-hidden="true" size={16} />
+                      Dashboard
+                    </Link>
+                    <button
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-destructive hover:bg-red-50"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        void logout();
+                      }}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <LogOut aria-hidden="true" size={16} />
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            <button
+              aria-expanded={isMenuOpen}
+              aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              className="inline-flex size-10 items-center justify-center rounded-lg border border-border hover:bg-muted lg:hidden"
+              onClick={() => setIsMenuOpen((open) => !open)}
+              type="button"
+            >
+              {isMenuOpen ? <X aria-hidden="true" size={20} /> : <Menu aria-hidden="true" size={20} />}
+            </button>
+          </div>
+        </div>
+
+        {isMenuOpen && (
+          <div className="border-t border-border bg-surface px-4 py-3 lg:hidden">
+            <nav className="mx-auto grid max-w-[1600px] gap-1 sm:grid-cols-2" aria-label="Mobile navigation">
+              {items.map(({ to, label, icon: Icon }) => (
+                <Link
+                  className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold ${
+                    isActivePath(location.pathname, to)
+                      ? "bg-muted text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                  key={to}
+                  onClick={() => setIsMenuOpen(false)}
+                  to={to}
+                >
+                  <Icon aria-hidden="true" size={18} />
+                  {label}
+                </Link>
+              ))}
+              {!user && (
                 <>
                   <Link
-                    to="/bookings/me"
-                    className="text-sm text-muted-foreground hover:text-foreground"
+                    className="flex items-center justify-center rounded-lg border border-border px-3 py-3 text-sm font-semibold hover:bg-muted"
+                    onClick={() => setIsMenuOpen(false)}
+                    to="/register"
                   >
-                    Bookings
+                    Create account
                   </Link>
                   <Link
-                    to="/payments"
-                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                    className="flex items-center justify-center rounded-lg bg-primary px-3 py-3 text-sm font-bold text-primary-foreground"
+                    onClick={() => setIsMenuOpen(false)}
+                    to="/login"
                   >
-                    <CreditCard className="h-4 w-4" />
-                    Payments
+                    Sign in
                   </Link>
-                  <Link
-                    to="/invoices"
-                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Invoices
-                  </Link>
-                  <Link
-                    to="/reviews"
-                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    <Star className="h-4 w-4" />
-                    Reviews
-                  </Link>
-                  <Link
-                    to="/notifications"
-                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    <Bell className="h-4 w-4" />
-                    Notifications
-                  </Link>
-                  {user.role === "VENDOR" && (
-                    <>
-                      <Link
-                        to="/vendor/products"
-                        className="text-sm text-muted-foreground hover:text-foreground"
-                      >
-                        My Products
-                      </Link>
-                      <Link
-                        to="/vendor/bookings"
-                        className="text-sm text-muted-foreground hover:text-foreground"
-                      >
-                        Vendor Bookings
-                      </Link>
-                    </>
-                  )}
                 </>
+              )}
+              {user && (
+                <button
+                  className="flex items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold text-destructive hover:bg-red-50 sm:col-span-2"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    void logout();
+                  }}
+                  type="button"
+                >
+                  <LogOut aria-hidden="true" size={18} />
+                  Sign out
+                </button>
               )}
             </nav>
-
-            <div className="flex items-center gap-4">
-              {!user && (
-                <Link
-                  to="/login"
-                  className="rounded-lg bg-primary px-4 py-2 text-sm text-white hover:bg-primary/90"
-                >
-                  Login
-                </Link>
-              )}
-              {user && (
-                <>
-                  <span className="hidden text-sm text-muted-foreground sm:inline">
-                    {user.displayName}
-                  </span>
-                  <button
-                    onClick={() => logout()}
-                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </button>
-                </>
-              )}
-
-              {/* Mobile menu button */}
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden"
-              >
-                {isMenuOpen ? (
-                  <X className="h-6 w-6" />
-                ) : (
-                  <Menu className="h-6 w-6" />
-                )}
-              </button>
-            </div>
           </div>
-
-          {/* Mobile Navigation */}
-          {isMenuOpen && user && (
-            <div className="border-t border-border pb-4 pt-4 md:hidden">
-              <nav className="flex flex-col gap-2">
-                <Link
-                  to="/dashboard"
-                  className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  to="/products"
-                  className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Shop
-                </Link>
-                <Link
-                  to="/bookings/me"
-                  className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Bookings
-                </Link>
-                <Link
-                  to="/payments"
-                  className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Payments
-                </Link>
-                <Link
-                  to="/invoices"
-                  className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Invoices
-                </Link>
-                <Link
-                  to="/reviews"
-                  className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Reviews
-                </Link>
-                <Link
-                  to="/notifications"
-                  className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Notifications
-                </Link>
-                {user.role === "VENDOR" && (
-                  <>
-                    <Link
-                      to="/vendor/products"
-                      className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      My Products
-                    </Link>
-                    <Link
-                      to="/vendor/bookings"
-                      className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Vendor Bookings
-                    </Link>
-                  </>
-                )}
-              </nav>
-            </div>
-          )}
-        </div>
+        )}
       </header>
 
       <Outlet />

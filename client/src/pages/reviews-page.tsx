@@ -3,6 +3,9 @@ import { Star } from "lucide-react";
 import { useState } from "react";
 
 import { useAuth } from "../hooks/use-auth";
+import { apiErrorMessage } from "../lib/api-errors";
+import { validateReviewInput } from "../lib/review-validation";
+import { listMyBookings } from "../services/booking-service";
 import { reviewService } from "../services/review-service";
 import type { Review } from "../types/review";
 
@@ -26,6 +29,9 @@ export function ReviewsPage() {
   const [page, setPage] = useState(1);
   const [newReviewRating, setNewReviewRating] = useState(5);
   const [newReviewComment, setNewReviewComment] = useState("");
+  const [selectedRentalId, setSelectedRentalId] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const isVendor = user?.role === "VENDOR";
 
@@ -38,6 +44,21 @@ export function ReviewsPage() {
     enabled: Boolean(accessToken),
   });
 
+  const bookingsQuery = useQuery({
+    queryKey: ["my-bookings-for-reviews"],
+    queryFn: () => listMyBookings(accessToken ?? ""),
+    enabled: Boolean(accessToken && !isVendor),
+  });
+
+  const completedRentalIds = new Set(
+    (reviewsQuery.data?.reviews ?? []).map((review) => review.rentalId),
+  );
+  const eligibleBookings = (bookingsQuery.data ?? []).filter(
+    (booking) =>
+      booking.rental?.status === "COMPLETED" &&
+      !completedRentalIds.has(booking.rental.id),
+  );
+
   const createReviewMutation = useMutation({
     mutationFn: (input: {
       rentalId: string;
@@ -45,19 +66,35 @@ export function ReviewsPage() {
       comment?: string;
     }) => reviewService.createReview(input),
     onSuccess: () => {
-      reviewsQuery.refetch();
+      void reviewsQuery.refetch();
+      void bookingsQuery.refetch();
       setNewReviewRating(5);
       setNewReviewComment("");
+      setSelectedRentalId("");
+      setFormError(null);
+      setSuccessMessage("Your review was submitted successfully.");
     },
   });
 
   const handleCreateReview = () => {
-    if (!newReviewComment.trim()) {
-      alert("Please enter a comment");
+    setFormError(null);
+    setSuccessMessage(null);
+
+    const validationError = validateReviewInput(
+      selectedRentalId,
+      newReviewRating,
+    );
+
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
-    // Note: In a real app, you'd need to select a rental first
-    // This is a placeholder component
+
+    createReviewMutation.mutate({
+      rentalId: selectedRentalId,
+      rating: newReviewRating,
+      comment: newReviewComment.trim() || undefined,
+    });
   };
 
   return (
@@ -81,6 +118,30 @@ export function ReviewsPage() {
             </p>
 
             <div className="mt-4 space-y-4">
+              {eligibleBookings.length > 0 && (
+                <label className="grid gap-2 text-sm font-medium">
+                  Completed rental
+                  <select
+                    className="rounded-lg border border-border px-3 py-2"
+                    value={selectedRentalId}
+                    onChange={(event) => setSelectedRentalId(event.target.value)}
+                  >
+                    <option value="">Select a rental</option>
+                    {eligibleBookings.map((booking) => (
+                      <option key={booking.rental!.id} value={booking.rental!.id}>
+                        {booking.product.name} - {new Date(booking.endsAt).toLocaleDateString()}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              {eligibleBookings.length === 0 && (
+                <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                  No completed rentals are currently eligible for a review.
+                </p>
+              )}
+
               <div>
                 <label className="text-sm font-medium">Rating</label>
                 <div className="mt-2 flex gap-2">
@@ -119,12 +180,26 @@ export function ReviewsPage() {
               <button
                 onClick={handleCreateReview}
                 disabled={
-                  createReviewMutation.isPending || !newReviewComment.trim()
+                  createReviewMutation.isPending || eligibleBookings.length === 0
                 }
                 className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primary/90 disabled:opacity-50"
               >
                 {createReviewMutation.isPending ? "Creating..." : "Post Review"}
               </button>
+              {formError && (
+                <p className="text-sm text-destructive">{formError}</p>
+              )}
+              {createReviewMutation.isError && (
+                <p className="text-sm text-destructive">
+                  {apiErrorMessage(
+                    createReviewMutation.error,
+                    "The review could not be submitted.",
+                  )}
+                </p>
+              )}
+              {successMessage && (
+                <p className="text-sm text-primary">{successMessage}</p>
+              )}
             </div>
           </div>
         )}

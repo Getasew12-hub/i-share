@@ -2,11 +2,16 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 
 import { AuthContext } from "../lib/auth-context";
+import {
+  configureAuthHandlers,
+  refreshAuthSession,
+} from "../services/api-client";
 import {
   login as loginRequest,
   logout as logoutRequest,
@@ -20,26 +25,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const accessTokenRef = useRef<string | null>(null);
+
+  const clearAuth = useCallback(() => {
+    accessTokenRef.current = null;
+    setUser(null);
+    setAccessToken(null);
+  }, []);
 
   const applyAuth = useCallback(
     (auth: { user: AuthUser; accessToken: string }) => {
       setUser(auth.user);
+      accessTokenRef.current = auth.accessToken;
       setAccessToken(auth.accessToken);
     },
     [],
   );
 
   useEffect(() => {
-    refreshSession()
-      .then(applyAuth)
-      .catch(() => {
-        setUser(null);
-        setAccessToken(null);
-      })
+    configureAuthHandlers({
+      getAccessToken: () => accessTokenRef.current,
+      refreshAccessToken: async () => {
+        const auth = await refreshSession();
+        applyAuth(auth);
+        return auth;
+      },
+      onRefreshFailure: clearAuth,
+    });
+
+    refreshAuthSession()
+      .catch(clearAuth)
       .finally(() => {
         setIsBootstrapping(false);
       });
-  }, [applyAuth]);
+  }, [applyAuth, clearAuth]);
 
   const value = useMemo(
     () => ({
@@ -57,11 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       async logout() {
         await logoutRequest();
-        setUser(null);
-        setAccessToken(null);
+        clearAuth();
       },
     }),
-    [accessToken, applyAuth, isBootstrapping, user],
+    [accessToken, applyAuth, clearAuth, isBootstrapping, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

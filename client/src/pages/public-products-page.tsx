@@ -61,7 +61,7 @@ function filtersFromParams(params: URLSearchParams): MarketplaceFilters {
     availableOn: params.get("availableOn") ?? undefined,
     sort: (params.get("sort") as MarketplaceSort | null) ?? "newest",
     page: Number.isFinite(page) && page > 0 ? page : 1,
-    limit: 9,
+    limit: 12,
   };
 }
 
@@ -70,7 +70,7 @@ function ProductCard({ product }: { product: Product }) {
 
   return (
     <Link
-      className="group grid overflow-hidden rounded-lg border border-border bg-white transition hover:border-primary"
+      className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
       to={`/products/${product.id}`}
     >
       <div className="aspect-[4/3] bg-muted">
@@ -86,12 +86,12 @@ function ProductCard({ product }: { product: Product }) {
           </div>
         )}
       </div>
-      <div className="grid gap-3 p-4">
+      <div className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
         <div>
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">
             {product.category.name}
           </p>
-          <h2 className="mt-1 line-clamp-2 text-lg font-semibold tracking-normal group-hover:text-primary">
+          <h2 className="mt-1 line-clamp-2 text-lg font-bold leading-tight group-hover:text-primary">
             {product.name}
           </h2>
         </div>
@@ -99,7 +99,7 @@ function ProductCard({ product }: { product: Product }) {
           {product.description}
         </p>
         <div className="grid gap-2 text-sm">
-          <p className="font-medium">{rateLabel(product)}</p>
+          <p className="text-lg font-bold">{rateLabel(product)}</p>
           <p className="inline-flex items-center gap-2 text-muted-foreground">
             <MapPin aria-hidden="true" size={16} />
             {[product.city, product.country].filter(Boolean).join(", ") ||
@@ -185,8 +185,8 @@ export function PublicProductsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background px-6 py-8">
-      <section className="mx-auto grid w-full max-w-7xl gap-6">
+    <main className="page-surface">
+      <section className="mx-auto grid w-full max-w-[1600px] gap-8 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
         <div className="flex items-center justify-between gap-3">
           <Link className="text-sm text-muted-foreground" to="/">
             i-Share
@@ -199,7 +199,7 @@ export function PublicProductsPage() {
               <PackageSearch aria-hidden="true" size={21} />
             </div>
             <div>
-              <h1 className="text-3xl font-semibold tracking-normal">
+              <h1 className="text-4xl font-black tracking-[-0.03em]">
                 Marketplace
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -216,7 +216,7 @@ export function PublicProductsPage() {
         </div>
 
         <form
-          className="grid gap-3 rounded-lg border border-border bg-white p-4 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto]"
+          className="surface-card grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto]"
           onSubmit={submitFilters}
         >
           <label className="grid gap-1 text-sm">
@@ -228,7 +228,7 @@ export function PublicProductsPage() {
                 size={16}
               />
               <input
-                className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm"
+                className="control-base h-11 w-full pl-9 pr-3 text-sm"
                 defaultValue={filters.query}
                 name="query"
                 placeholder="Product or category"
@@ -239,7 +239,7 @@ export function PublicProductsPage() {
           <label className="grid gap-1 text-sm">
             <span className="font-medium">Category</span>
             <select
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className="control-base h-11 rounded-lg px-3 text-sm"
               defaultValue={filters.category}
               name="category"
             >
@@ -256,7 +256,7 @@ export function PublicProductsPage() {
             <span className="font-medium">Price</span>
             <div className="grid grid-cols-2 gap-2">
               <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="control-base h-11 rounded-lg px-3 text-sm"
                 defaultValue={filters.minPrice}
                 min="0"
                 name="minPrice"
@@ -264,7 +264,7 @@ export function PublicProductsPage() {
                 type="number"
               />
               <input
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="control-base h-11 rounded-lg px-3 text-sm"
                 defaultValue={filters.maxPrice}
                 min="0"
                 name="maxPrice"
@@ -277,7 +277,7 @@ export function PublicProductsPage() {
           <label className="grid gap-1 text-sm">
             <span className="font-medium">Location</span>
             <input
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className="control-base h-11 rounded-lg px-3 text-sm"
               defaultValue={filters.location}
               name="location"
               placeholder="City or country"
@@ -287,7 +287,7 @@ export function PublicProductsPage() {
           <label className="grid gap-1 text-sm">
             <span className="font-medium">Date</span>
             <input
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className="control-base h-11 rounded-lg px-3 text-sm"
               defaultValue={filters.availableOn}
               name="availableOn"
               type="date"
@@ -298,7 +298,7 @@ export function PublicProductsPage() {
             <span className="font-medium">Sort</span>
             <div className="flex gap-2">
               <select
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="control-base h-11 rounded-lg px-3 text-sm"
                 defaultValue={filters.sort}
                 name="sort"
               >
@@ -309,7 +309,7 @@ export function PublicProductsPage() {
                 ))}
               </select>
               <button
-                className="inline-flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground"
+                className="inline-flex size-11 items-center justify-center rounded-lg bg-primary text-primary-foreground transition hover:bg-primary/90"
                 title="Apply filters"
                 type="submit"
               >
@@ -326,10 +326,10 @@ export function PublicProductsPage() {
         )}
 
         {productsQuery.isLoading && (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 6 }).map((_, index) => (
               <div
-                className="h-80 animate-pulse rounded-lg border border-border bg-white"
+                className="h-96 animate-pulse rounded-2xl bg-muted"
                 key={index}
               />
             ))}
@@ -345,13 +345,13 @@ export function PublicProductsPage() {
         {!productsQuery.isLoading && !productsQuery.isError && (
           <>
             {products.length ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 {products.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-border bg-white p-8 text-center">
+              <div className="surface-card p-10 text-center">
                 <PackageSearch
                   aria-hidden="true"
                   className="mx-auto text-muted-foreground"

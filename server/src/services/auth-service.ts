@@ -30,6 +30,7 @@ type RequestContext = {
 export type AuthUserResponse = {
   id: string;
   email: string;
+  displayName: string;
   role: UserRole;
   status: UserStatus;
   firstName: string | null;
@@ -176,10 +177,22 @@ export class AuthService {
     await this.authRepository.markRefreshSessionUsed(session.id, now);
     await this.authRepository.revokeRefreshSession(session.id, now, "rotated");
 
-    return this.createAuthenticatedSession(user, context, {
-      familyId: session.familyId,
-      rotatedFromId: session.id,
-    });
+    try {
+      return await this.createAuthenticatedSession(user, context, {
+        familyId: session.familyId,
+        rotatedFromId: session.id,
+      });
+    } catch (error) {
+      if (isRefreshRotationConflict(error)) {
+        throw new AppError(
+          401,
+          "REFRESH_TOKEN_REPLAYED",
+          "Refresh token revoked.",
+        );
+      }
+
+      throw error;
+    }
   }
 
   async logout(refreshToken: string | undefined) {
@@ -239,9 +252,16 @@ export class AuthService {
   }
 
   toUserResponse(user: SafeUser | UserWithCredentials): AuthUserResponse {
+    const profileDisplayName =
+      user.vendorProfile?.displayName ?? user.customerProfile?.displayName;
+    const personalDisplayName = [user.firstName, user.lastName]
+      .filter((name): name is string => Boolean(name?.trim()))
+      .join(" ");
+
     return {
       id: user.id,
       email: user.email,
+      displayName: profileDisplayName?.trim() || personalDisplayName || user.email,
       role: user.role,
       status: user.status,
       firstName: user.firstName,
@@ -323,6 +343,27 @@ export class AuthService {
       throw error;
     }
   }
+}
+
+function isRefreshRotationConflict(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const prismaError = error as {
+    code?: unknown;
+    meta?: { target?: unknown };
+  };
+
+  if (prismaError.code !== "P2002") {
+    return false;
+  }
+
+  const target = prismaError.meta?.target;
+  return (
+    (Array.isArray(target) && target.includes("rotated_from_id")) ||
+    target === "rotated_from_id"
+  );
 }
 
 export const authService = new AuthService(prismaAuthRepository);

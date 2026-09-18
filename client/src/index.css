@@ -3,27 +3,90 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --primary: 162 73% 32%;
+  --background: 72 24% 97%;
+  --foreground: 154 22% 13%;
+  --surface: 0 0% 100%;
+  --surface-muted: 78 18% 94%;
+  --muted: 78 18% 94%;
+  --muted-foreground: 150 9% 43%;
+  --primary: 158 62% 28%;
   --primary-foreground: 0 0% 100%;
-  --border: 214.3 31.8% 91.4%;
+  --secondary: 36 82% 58%;
+  --secondary-foreground: 28 30% 12%;
+  --border: 80 12% 86%;
+  --input: 80 12% 80%;
+  --destructive: 4 67% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 153 47% 35%;
+  --warning: 35 84% 45%;
+  --ring: 158 62% 28%;
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  :focus-visible {
+    outline: 3px solid hsl(var(--ring) / 0.35);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .page-surface {
+    min-height: calc(100vh - 4.5rem);
+    background:
+      radial-gradient(circle at 12% 0%, hsl(var(--secondary) / 0.12), transparent 28rem),
+      hsl(var(--background));
+  }
+
+  .surface-card {
+    border: 1px solid hsl(var(--border));
+    border-radius: 1rem;
+    background: hsl(var(--surface));
+    box-shadow: 0 10px 30px hsl(154 22% 13% / 0.045);
+  }
+
+  .control-base {
+    min-height: 2.75rem;
+    border: 1px solid hsl(var(--input));
+    border-radius: 0.7rem;
+    background: hsl(var(--surface));
+    padding: 0.625rem 0.875rem;
+    color: hsl(var(--foreground));
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  }
+
+  .control-base:hover {
+    border-color: hsl(var(--primary) / 0.55);
+  }
+
+  .control-base:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
 }
 
 body {
   margin: 0;
-  min-width: 320px;
   min-height: 100vh;
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   font-family:
-    Inter,
+    "Avenir Next",
+    Avenir,
     ui-sans-serif,
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }

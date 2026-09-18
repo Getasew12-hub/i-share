@@ -4,17 +4,20 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../hooks/use-auth";
+import { apiErrorMessage } from "../lib/api-errors";
 import { invoiceService } from "../services/invoice-service";
 import type { Invoice } from "../types/invoice";
 
 function invoiceStatusColor(status: Invoice["status"]): string {
   switch (status) {
-    case "PENDING":
+    case "DRAFT":
       return "bg-yellow-100 text-yellow-800";
     case "PAID":
       return "bg-green-100 text-green-800";
-    case "REFUNDED":
+    case "VOID":
       return "bg-red-100 text-red-800";
+    case "ISSUED":
+      return "bg-blue-100 text-blue-800";
     default:
       return "bg-gray-100 text-gray-600";
   }
@@ -36,17 +39,11 @@ export function InvoicesPage() {
     enabled: Boolean(accessToken),
   });
 
-  const formatCurrency = (amount: any): string => {
-    const value =
-      typeof amount === "string"
-        ? parseFloat(amount)
-        : amount?.$numberDecimal
-          ? parseFloat(amount.$numberDecimal)
-          : 0;
+  const formatCurrency = (amount: string, currency: string): string => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
-    }).format(value);
+      currency,
+    }).format(Number(amount));
   };
 
   return (
@@ -74,7 +71,10 @@ export function InvoicesPage() {
 
         {invoicesQuery.isError && (
           <div className="mt-6 rounded-lg border border-destructive/40 bg-white p-6 text-sm text-destructive">
-            Your invoices could not be loaded.
+            {apiErrorMessage(
+              invoicesQuery.error,
+              "Your invoices could not be loaded.",
+            )}
           </div>
         )}
 
@@ -123,7 +123,7 @@ export function InvoicesPage() {
                         {invoice.invoiceNumber}
                       </td>
                       <td className="px-6 py-4 font-medium">
-                        {formatCurrency(invoice.totalAmount)}
+                        {formatCurrency(invoice.totalAmount, invoice.currency)}
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -240,7 +240,10 @@ export function InvoicesPage() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Unit Price</span>
                       <span className="font-medium">
-                        {formatCurrency(selectedInvoice.snapshots.unitPrice)}
+                        {formatCurrency(
+                          selectedInvoice.snapshots.unitPrice,
+                          selectedInvoice.currency,
+                        )}
                       </span>
                     </div>
                     <div className="flex justify-between">

@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../hooks/use-auth";
+import { StepRail, WorkspaceShell } from "../components/business-ui";
+import { AsyncState, Button, StatusBadge, Surface } from "../components/ui";
 import {
   addMyVendorDocument,
   getMyVendorVerification,
@@ -127,31 +129,25 @@ export function VendorOnboardingPage() {
     event.currentTarget.reset();
   }
 
+  if (!vendor) {
+    return (
+      <WorkspaceShell eyebrow="Vendor workspace" title="Verification onboarding" description="Loading your business verification progress.">
+        <AsyncState type="loading" title="Loading onboarding" />
+      </WorkspaceShell>
+    );
+  }
+
+  const currentStep = vendor.verificationStatus === "APPROVED" ? 3 : vendor.verificationStatus === "PENDING" ? 2 : vendor.profileComplete ? 1 : 0;
+
   return (
-    <main className="min-h-screen bg-background px-6 py-8">
-      <section className="mx-auto w-full max-w-6xl">
+    <WorkspaceShell eyebrow="Vendor workspace" title="Verification onboarding" description="Complete your business profile and submit the information needed to become an approved rental vendor.">
+      <>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <Link className="text-sm text-muted-foreground" to="/">
-            i-Share
-          </Link>
-          <span className="rounded-md border border-border px-3 py-2 text-sm">
-            {vendor?.verificationStatus ?? "Loading"}
-          </span>
+          <p className="text-sm text-muted-foreground">Current status</p>
+          <StatusBadge tone={vendor.verificationStatus === "APPROVED" ? "success" : vendor.verificationStatus === "REJECTED" ? "danger" : "warning"}>{vendor.verificationStatus}</StatusBadge>
         </div>
 
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Store aria-hidden="true" size={21} />
-          </div>
-          <div>
-            <h1 className="text-3xl font-semibold tracking-normal">
-              Vendor onboarding
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {vendor?.lifecycleStage ?? "Checking verification state"}
-            </p>
-          </div>
-        </div>
+        <StepRail current={currentStep} steps={[{ label: "Business profile", description: "Tell us about your business.", complete: Boolean(vendor.emailVerifiedAt && vendor.profileComplete) }, { label: "Documents", description: "Record your verification documents.", complete: vendor.documents.length > 0 }, { label: "Review", description: "Submit for administrator review.", complete: vendor.verificationStatus === "PENDING" }, { label: "Approved", description: "Publish and grow your catalog.", complete: vendor.verificationStatus === "APPROVED" }]} />
 
         {vendor?.verificationStatus === "REJECTED" && (
           <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
@@ -170,9 +166,9 @@ export function VendorOnboardingPage() {
         )}
         {message && <p className="mb-4 text-sm text-primary">{message}</p>}
 
-        <div className="grid gap-5 lg:grid-cols-[1fr_0.85fr]">
+        <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_0.85fr]">
           <form
-            className="rounded-lg border border-border bg-white p-5"
+            className="surface-card p-5 sm:p-7"
             onSubmit={handleProfileSubmit}
           >
             <h2 className="mb-4 text-xl font-semibold tracking-normal">
@@ -234,7 +230,7 @@ export function VendorOnboardingPage() {
 
           <div className="space-y-5">
             <form
-              className="rounded-lg border border-border bg-white p-5"
+              className="surface-card p-5 sm:p-7"
               onSubmit={handleDocumentSubmit}
             >
               <h2 className="mb-4 text-xl font-semibold tracking-normal">
@@ -299,7 +295,7 @@ export function VendorOnboardingPage() {
               </button>
             </form>
 
-            <section className="rounded-lg border border-border bg-white p-5">
+            <section className="surface-card p-5 sm:p-7">
               <h2 className="mb-4 text-xl font-semibold tracking-normal">
                 Submit for review
               </h2>
@@ -324,7 +320,7 @@ export function VendorOnboardingPage() {
             </section>
           </div>
         </div>
-      </section>
-    </main>
+      </>
+    </WorkspaceShell>
   );
 }

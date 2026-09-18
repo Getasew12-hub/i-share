@@ -1,27 +1,34 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Bell, Check, CheckCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useAuth } from "../hooks/use-auth";
+import { apiErrorMessage } from "../lib/api-errors";
 import { notificationService } from "../services/notification-service";
 import type { Notification } from "../types/notification";
 
 function notificationTypeLabel(type: Notification["type"]): string {
   switch (type) {
-    case "BOOKING_CREATED":
+    case "BOOKING_REQUEST":
       return "Booking Created";
-    case "BOOKING_CONFIRMED":
+    case "BOOKING_APPROVAL":
       return "Booking Confirmed";
-    case "BOOKING_REJECTED":
+    case "BOOKING_REJECTION":
       return "Booking Rejected";
-    case "PAYMENT_SUCCEEDED":
-      return "Payment Succeeded";
-    case "PAYMENT_FAILED":
-      return "Payment Failed";
-    case "RENTAL_STARTED":
-      return "Rental Started";
-    case "RENTAL_COMPLETED":
-      return "Rental Completed";
+    case "PAYMENT_CONFIRMATION":
+      return "Payment Update";
+    case "RENTAL_REMINDER":
+      return "Rental Reminder";
+    case "RETURN_REMINDER":
+      return "Return Reminder";
+    case "ACCOUNT_VERIFICATION":
+      return "Account Verification";
+    case "SUBSCRIPTION_EXPIRATION":
+      return "Subscription Expiration";
+    case "NEW_MESSAGE":
+      return "New Message";
+    case "SYSTEM_ANNOUNCEMENT":
+      return "System Announcement";
     default:
       return "Notification";
   }
@@ -29,19 +36,17 @@ function notificationTypeLabel(type: Notification["type"]): string {
 
 function notificationTypeColor(type: Notification["type"]): string {
   switch (type) {
-    case "BOOKING_CREATED":
+    case "BOOKING_REQUEST":
       return "bg-blue-100 text-blue-800";
-    case "BOOKING_CONFIRMED":
+    case "BOOKING_APPROVAL":
       return "bg-green-100 text-green-800";
-    case "BOOKING_REJECTED":
+    case "BOOKING_REJECTION":
       return "bg-red-100 text-red-800";
-    case "PAYMENT_SUCCEEDED":
+    case "PAYMENT_CONFIRMATION":
       return "bg-green-100 text-green-800";
-    case "PAYMENT_FAILED":
-      return "bg-red-100 text-red-800";
-    case "RENTAL_STARTED":
+    case "RENTAL_REMINDER":
       return "bg-purple-100 text-purple-800";
-    case "RENTAL_COMPLETED":
+    case "RETURN_REMINDER":
       return "bg-blue-100 text-blue-800";
     default:
       return "bg-gray-100 text-gray-800";
@@ -135,8 +140,20 @@ export function NotificationsPage() {
 
         {notificationsQuery.isError && (
           <div className="mt-6 rounded-lg border border-destructive/40 bg-white p-6 text-sm text-destructive">
-            Your notifications could not be loaded.
+            {apiErrorMessage(
+              notificationsQuery.error,
+              "Your notifications could not be loaded.",
+            )}
           </div>
+        )}
+
+        {(markReadMutation.isError || markAllReadMutation.isError) && (
+          <p className="mt-4 text-sm text-destructive">
+            {apiErrorMessage(
+              markReadMutation.error ?? markAllReadMutation.error,
+              "The notification could not be updated.",
+            )}
+          </p>
         )}
 
         {notificationsQuery.data?.notifications &&

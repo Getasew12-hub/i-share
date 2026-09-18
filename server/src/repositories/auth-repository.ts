@@ -8,13 +8,13 @@ import type {
 import { prisma } from "../config/prisma.js";
 
 export type SafeUser = Omit<User, "passwordHash"> & {
-  vendorProfile?: { id: string } | null;
-  customerProfile?: { id: string } | null;
+  vendorProfile?: { id: string; displayName?: string } | null;
+  customerProfile?: { id: string; displayName?: string } | null;
 };
 
 export type UserWithCredentials = User & {
-  vendorProfile?: { id: string } | null;
-  customerProfile?: { id: string } | null;
+  vendorProfile?: { id: string; displayName?: string } | null;
+  customerProfile?: { id: string; displayName?: string } | null;
 };
 
 const safeUserSelect = {
@@ -33,11 +33,13 @@ const safeUserSelect = {
   vendorProfile: {
     select: {
       id: true,
+      displayName: true,
     },
   },
   customerProfile: {
     select: {
       id: true,
+      displayName: true,
     },
   },
 } satisfies Prisma.UserSelect;
@@ -154,11 +156,13 @@ export const prismaAuthRepository: AuthRepository = {
         vendorProfile: {
           select: {
             id: true,
+            displayName: true,
           },
         },
         customerProfile: {
           select: {
             id: true,
+            displayName: true,
           },
         },
       },

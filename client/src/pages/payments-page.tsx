@@ -3,6 +3,7 @@ import { CreditCard } from "lucide-react";
 import { useState } from "react";
 
 import { useAuth } from "../hooks/use-auth";
+import { apiErrorMessage } from "../lib/api-errors";
 import { paymentService } from "../services/payment-service";
 import type { Payment } from "../types/payment";
 
@@ -14,6 +15,12 @@ function paymentStatusColor(status: Payment["status"]): string {
       return "bg-green-100 text-green-800";
     case "FAILED":
       return "bg-red-100 text-red-800";
+    case "REQUIRES_ACTION":
+      return "bg-amber-100 text-amber-800";
+    case "CANCELLED":
+      return "bg-gray-100 text-gray-600";
+    case "REFUNDED":
+      return "bg-purple-100 text-purple-800";
     default:
       return "bg-gray-100 text-gray-600";
   }
@@ -34,16 +41,16 @@ export function PaymentsPage() {
     enabled: Boolean(accessToken),
   });
 
-  const formatCurrency = (amount: any): string => {
+  const formatCurrency = (amount: Payment["amount"], currency: string) => {
     const value =
-      typeof amount === "string"
-        ? parseFloat(amount)
-        : amount?.$numberDecimal
-          ? parseFloat(amount.$numberDecimal)
-          : 0;
+      typeof amount === "number"
+        ? amount
+        : typeof amount === "string"
+          ? Number(amount)
+          : Number(amount.$numberDecimal);
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency,
     }).format(value);
   };
 
@@ -79,7 +86,10 @@ export function PaymentsPage() {
 
         {paymentsQuery.isError && (
           <div className="mt-6 rounded-lg border border-destructive/40 bg-white p-6 text-sm text-destructive">
-            Your payments could not be loaded.
+            {apiErrorMessage(
+              paymentsQuery.error,
+              "Your payments could not be loaded.",
+            )}
           </div>
         )}
 
@@ -123,7 +133,7 @@ export function PaymentsPage() {
                       className="border-b border-border hover:bg-gray-50"
                     >
                       <td className="px-6 py-4 font-medium">
-                        {formatCurrency(payment.amount)}
+                        {formatCurrency(payment.amount, payment.currency)}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {formatProvider(payment.provider)}

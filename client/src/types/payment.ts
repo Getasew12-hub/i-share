@@ -1,7 +1,15 @@
 export type PaymentProvider =
   "CHAPA" | "STRIPE" | "PAYPAL" | "TELEBIRR" | "BANK_TRANSFER" | "OTHER";
 
-export type PaymentStatus = "PENDING" | "SUCCEEDED" | "FAILED";
+export type PaymentStatus =
+  | "PENDING"
+  | "REQUIRES_ACTION"
+  | "SUCCEEDED"
+  | "FAILED"
+  | "CANCELLED"
+  | "REFUNDED";
+
+export type DecimalValue = string | number | { $numberDecimal: string };
 
 export interface Payment {
   id: string;
@@ -9,9 +17,7 @@ export interface Payment {
   provider: PaymentProvider;
   methodLabel?: string;
   status: PaymentStatus;
-  amount: {
-    $numberDecimal: string;
-  };
+  amount: DecimalValue;
   currency: string;
   createdAt: string;
   updatedAt: string;

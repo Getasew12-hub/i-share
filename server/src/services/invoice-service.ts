@@ -183,12 +183,7 @@ export class InvoiceService {
     };
   }
 
-  private async requireCustomer(userId: string): Promise<{
-    id: string;
-    email: string;
-    displayName: string;
-    userId: string;
-  }> {
+  private async requireCustomer(userId: string): Promise<{ id: string }> {
     const customer = await this.bookingRepository.findCustomerByUserId(userId);
 
     if (!customer) {
@@ -199,28 +194,10 @@ export class InvoiceService {
       );
     }
 
-    const customerDetail = await prisma.customerProfile.findUnique({
-      where: { id: customer.id },
-      select: { id: true, email: true, displayName: true, userId: true },
-    });
-
-    if (!customerDetail) {
-      throw new AppError(
-        404,
-        "CUSTOMER_PROFILE_NOT_FOUND",
-        "Customer profile not found.",
-      );
-    }
-
-    return customerDetail;
+    return { id: customer.id };
   }
 
-  private async requireVendor(userId: string): Promise<{
-    id: string;
-    email: string;
-    displayName: string;
-    userId: string;
-  }> {
+  private async requireVendor(userId: string): Promise<{ id: string }> {
     const vendor = await this.bookingRepository.findVendorByUserId(userId);
 
     if (!vendor) {
@@ -231,20 +208,7 @@ export class InvoiceService {
       );
     }
 
-    const vendorDetail = await prisma.vendorProfile.findUnique({
-      where: { id: vendor.id },
-      select: { id: true, email: true, displayName: true, userId: true },
-    });
-
-    if (!vendorDetail) {
-      throw new AppError(
-        404,
-        "VENDOR_PROFILE_NOT_FOUND",
-        "Vendor profile not found.",
-      );
-    }
-
-    return vendorDetail;
+    return { id: vendor.id };
   }
 
   private async requireBooking(

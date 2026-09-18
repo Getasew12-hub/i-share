@@ -1,4 +1,4 @@
-import { apiClient } from "./api-client";
+import { apiClient, type AuthRequestConfig } from "./api-client";
 import type { AuthResponse, AuthUser } from "../types/auth";
 
 type Envelope<T> = {
@@ -48,8 +48,11 @@ export async function login(payload: { email: string; password: string }) {
 }
 
 export async function refreshSession() {
-  const response =
-    await apiClient.post<Envelope<AuthResponse>>("/auth/refresh");
+  const response = await apiClient.post<Envelope<AuthResponse>>(
+    "/auth/refresh",
+    undefined,
+    { skipAuth: true } as AuthRequestConfig,
+  );
 
   return response.data.data;
 }

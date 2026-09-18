@@ -1,12 +1,14 @@
 import { FormEvent, useState } from "react";
 import { LogIn } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
+import { apiErrorMessage } from "../lib/api-errors";
 import { useAuth } from "../hooks/use-auth";
 
 export function LoginPage() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -22,9 +24,12 @@ export function LoginPage() {
         email: String(formData.get("email")),
         password: String(formData.get("password")),
       });
-      navigate("/");
-    } catch {
-      setError("Unable to sign in with those credentials.");
+      const from = (location.state as { from?: string } | null)?.from ?? "/";
+      navigate(from, { replace: true });
+    } catch (requestError) {
+      setError(
+        apiErrorMessage(requestError, "Unable to sign in with those credentials."),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -78,6 +83,12 @@ export function LoginPage() {
             <LogIn aria-hidden="true" size={18} />
             {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
+          <p className="mt-5 text-center text-sm text-muted-foreground">
+            New to i-Share?{" "}
+            <Link className="font-semibold text-primary hover:underline" to="/register">
+              Create account
+            </Link>
+          </p>
         </form>
       </section>
     </main>

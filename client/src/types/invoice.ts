@@ -11,7 +11,7 @@ export interface InvoiceSnapshot {
   pricingModel: string;
 }
 
-export type InvoiceStatus = "PENDING" | "PAID" | "REFUNDED";
+export type InvoiceStatus = "DRAFT" | "ISSUED" | "PAID" | "VOID";
 
 export interface Invoice {
   id: string;
@@ -20,6 +20,10 @@ export interface Invoice {
   invoiceNumber: string;
   snapshots: InvoiceSnapshot;
   totalAmount: string;
+  subtotalAmount: string;
+  discountAmount: string;
+  currency: string;
+  issuedAt: string;
   status: InvoiceStatus;
   createdAt: string;
   updatedAt: string;

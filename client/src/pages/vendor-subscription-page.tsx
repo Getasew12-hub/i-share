@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../hooks/use-auth";
+import { WorkspaceShell } from "../components/business-ui";
+import { AsyncState, Button, StatusBadge, Surface } from "../components/ui";
 import {
   cancelMySubscription,
   changeMySubscriptionPlan,
@@ -119,16 +121,12 @@ export function VendorSubscriptionPage() {
   const current = subscriptionQuery.data?.current;
 
   return (
-    <main className="min-h-screen bg-background px-6 py-8">
-      <section className="mx-auto w-full max-w-6xl">
+    <WorkspaceShell eyebrow="Vendor workspace" title="Subscription" description="Choose the plan that gives your rental business the room to grow.">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <Link className="text-sm text-muted-foreground" to="/">
-            i-Share
-          </Link>
-          <div className="flex rounded-md border border-border bg-white p-1">
+          <div className="flex rounded-lg border border-border bg-surface p-1">
             {(["MONTHLY", "YEARLY"] as const).map((cycle) => (
               <button
-                className={`rounded px-3 py-2 text-sm font-medium ${
+                className={`rounded-md px-3 py-2 text-sm font-bold ${
                   billingCycle === cycle
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground"
@@ -143,23 +141,11 @@ export function VendorSubscriptionPage() {
           </div>
         </div>
 
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Crown aria-hidden="true" size={21} />
-          </div>
-          <div>
-            <h1 className="text-3xl font-semibold tracking-normal">
-              Vendor subscription
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {current ? current.status : "No active subscription"}
-            </p>
-          </div>
-        </div>
+        <div className="mb-6 flex items-center gap-3"><Crown aria-hidden="true" className="text-primary" size={22} /><StatusBadge tone={current ? "success" : "warning"}>{current ? current.status : "No active subscription"}</StatusBadge></div>
 
         {message && <p className="mb-4 text-sm text-primary">{message}</p>}
 
-        <section className="mb-5 rounded-lg border border-border bg-white p-5">
+        <Surface className="mb-6 p-5 sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold tracking-normal">
@@ -185,9 +171,9 @@ export function VendorSubscriptionPage() {
               </button>
             )}
           </div>
-        </section>
+        </Surface>
 
-        <div className="grid gap-5 lg:grid-cols-3">
+        {plansQuery.isLoading ? <AsyncState type="loading" title="Loading subscription plans" /> : <div className="grid gap-5 lg:grid-cols-3">
           {(plansQuery.data ?? []).map((plan) => {
             const amount =
               billingCycle === "MONTHLY"
@@ -197,7 +183,7 @@ export function VendorSubscriptionPage() {
 
             return (
               <form
-                className="rounded-lg border border-border bg-white p-5"
+                className={`surface-card p-5 sm:p-6 ${isCurrent ? "ring-2 ring-primary/30" : ""}`}
                 key={plan.id}
                 onSubmit={(event) => handlePlanSubmit(event, plan.id)}
               >
@@ -211,7 +197,7 @@ export function VendorSubscriptionPage() {
                     </p>
                   </div>
                   {isCurrent && (
-                    <span className="rounded-md border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-700">
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
                       Current
                     </span>
                   )}
@@ -241,8 +227,8 @@ export function VendorSubscriptionPage() {
                   </p>
                 </div>
 
-                <button
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground disabled:opacity-60"
+                <Button
+                  className="w-full"
                   disabled={
                     isCurrent ||
                     selectMutation.isPending ||
@@ -256,12 +242,11 @@ export function VendorSubscriptionPage() {
                     <Check aria-hidden="true" size={18} />
                   )}
                   {current ? "Change plan" : "Select plan"}
-                </button>
+                </Button>
               </form>
             );
           })}
-        </div>
-      </section>
-    </main>
+        </div>}
+    </WorkspaceShell>
   );
 }

@@ -1,6 +1,27 @@
 import type { Payment, PaymentProvider } from "../types/payment";
 import { apiClient } from "./api-client";
 
+type Envelope<T> = { data: T };
+
+type PaymentListResult = {
+  payments: Payment[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+};
+
+function normalizePaymentList(result: PaymentListResult) {
+  return {
+    payments: result.payments,
+    total: result.pagination.total,
+    page: result.pagination.page,
+    totalPages: result.pagination.pages,
+  };
+}
+
 export const paymentService = {
   async createBookingPayment(
     bookingId: string,
@@ -9,16 +30,18 @@ export const paymentService = {
       methodLabel?: string;
     },
   ): Promise<{ payment: Payment }> {
-    const response = await apiClient.post(
+    const response = await apiClient.post<Envelope<{ payment: Payment }>>(
       `/payments/bookings/${bookingId}`,
-      input,
+      { bookingId, ...input },
     );
-    return response.data;
+    return response.data.data;
   },
 
   async getMyPayment(paymentId: string): Promise<{ payment: Payment }> {
-    const response = await apiClient.get(`/payments/me/${paymentId}`);
-    return response.data;
+    const response = await apiClient.get<Envelope<{ payment: Payment }>>(
+      `/payments/me/${paymentId}`,
+    );
+    return response.data.data;
   },
 
   async listMyPayments(
@@ -30,10 +53,10 @@ export const paymentService = {
     page: number;
     totalPages: number;
   }> {
-    const response = await apiClient.get(
+    const response = await apiClient.get<Envelope<PaymentListResult>>(
       `/payments/me?page=${page}&limit=${limit}`,
     );
-    return response.data;
+    return normalizePaymentList(response.data.data);
   },
 
   async listVendorPayments(
@@ -45,9 +68,9 @@ export const paymentService = {
     page: number;
     totalPages: number;
   }> {
-    const response = await apiClient.get(
+    const response = await apiClient.get<Envelope<PaymentListResult>>(
       `/payments/vendor?page=${page}&limit=${limit}`,
     );
-    return response.data;
+    return normalizePaymentList(response.data.data);
   },
 };

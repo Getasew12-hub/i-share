@@ -1,101 +1,39 @@
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, ChevronRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 
+import { BookingCard } from "../components/booking-ui";
+import { AsyncState, Button, PageHeader } from "../components/ui";
+import { apiErrorMessage } from "../lib/api-errors";
 import { listMyBookings } from "../services/booking-service";
+import { paymentService } from "../services/payment-service";
 import { useAuth } from "../hooks/use-auth";
-import type { Booking } from "../types/booking";
-
-function statusColor(status: Booking["status"]): string {
-  switch (status) {
-    case "PENDING":
-      return "bg-yellow-100 text-yellow-800";
-    case "CONFIRMED":
-      return "bg-blue-100 text-blue-800";
-    case "ACTIVE":
-      return "bg-green-100 text-green-800";
-    case "COMPLETED":
-      return "bg-gray-100 text-gray-800";
-    case "REJECTED":
-      return "bg-red-100 text-red-800";
-    case "CANCELLED":
-      return "bg-gray-100 text-gray-600";
-    default:
-      return "bg-gray-100 text-gray-600";
-  }
-}
 
 export function MyBookingsPage() {
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const bookingsQuery = useQuery({
     queryKey: ["my-bookings"],
     queryFn: () => listMyBookings(accessToken ?? ""),
-    enabled: Boolean(accessToken),
+    enabled: Boolean(accessToken && user?.role === "CUSTOMER"),
+  });
+  const paymentsQuery = useQuery({
+    queryKey: ["my-booking-payments"],
+    queryFn: () => paymentService.listMyPayments(1, 50),
+    enabled: Boolean(accessToken && user?.role === "CUSTOMER"),
   });
 
+  if (!user || user.role !== "CUSTOMER") return <Navigate replace to="/login" />;
+
   return (
-    <main className="min-h-screen bg-background px-6 py-8">
-      <section className="mx-auto w-full max-w-4xl">
-        <h1 className="text-3xl font-semibold tracking-normal">My Bookings</h1>
-        <p className="mt-2 text-muted-foreground">
-          Track and manage your rental bookings.
-        </p>
+    <main className="page-surface">
+      <section className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+        <PageHeader eyebrow="Your rentals" title="My bookings" description="Keep track of requests, confirmed rentals, and completed experiences in one place." actions={<Link to="/products"><Button>Browse marketplace</Button></Link>} />
 
-        {bookingsQuery.isLoading && (
-          <div className="mt-6 space-y-3">
-            {[1, 2, 3].map((index) => (
-              <div
-                className="h-24 animate-pulse rounded-lg border border-border bg-white"
-                key={index}
-              />
-            ))}
-          </div>
-        )}
-
-        {bookingsQuery.isError && (
-          <div className="mt-6 rounded-lg border border-destructive/40 bg-white p-6 text-sm text-destructive">
-            Your bookings could not be loaded.
-          </div>
-        )}
-
-        {bookingsQuery.data && bookingsQuery.data.length === 0 && (
-          <div className="mt-6 rounded-lg border border-border bg-white p-8 text-center text-muted-foreground">
-            You have no bookings yet.
-          </div>
-        )}
-
-        {bookingsQuery.data && bookingsQuery.data.length > 0 && (
-          <div className="mt-6 space-y-3">
-            {bookingsQuery.data.map((booking) => (
-              <Link
-                className="flex items-center justify-between rounded-lg border border-border bg-white p-4 transition hover:border-primary"
-                key={booking.id}
-                to={`/bookings/me/${booking.id}`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-md bg-muted">
-                    <CalendarDays aria-hidden="true" size={24} />
-                  </div>
-                  <div>
-                    <p className="font-medium">{booking.product.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(booking.startsAt).toLocaleDateString()} –{" "}
-                      {new Date(booking.endsAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-medium ${statusColor(booking.status)}`}
-                  >
-                    {booking.status}
-                  </span>
-                  <ChevronRight aria-hidden="true" size={16} />
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <div className="mt-8">
+          {bookingsQuery.isLoading && <AsyncState type="loading" title="Loading your bookings" />}
+          {bookingsQuery.isError && <AsyncState type="error" title="Bookings could not be loaded" message={apiErrorMessage(bookingsQuery.error, "Try again in a moment.")} />}
+          {bookingsQuery.data?.length === 0 && <AsyncState type="empty" title="No bookings yet" message="Find something useful in the marketplace and your rental requests will appear here." />}
+          {bookingsQuery.data && bookingsQuery.data.length > 0 && <div className="grid gap-4">{bookingsQuery.data.map((booking) => <BookingCard booking={booking} key={booking.id} paymentStatus={paymentsQuery.data?.payments.find((payment) => payment.bookingId === booking.id)?.status} />)}</div>}
+        </div>
       </section>
     </main>
   );
